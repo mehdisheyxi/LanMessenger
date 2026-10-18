@@ -6,11 +6,15 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+
+#ساخت برنامه و تنظیمات اولیه
 app = FastAPI(title="LAN Messenger")
 CHAT_PASSWORD = "12345678"
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
+
+#معرفی فایل‌های استاتیک به FastAPI
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -19,22 +23,27 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 async def home():
     return FileResponse(STATIC_DIR / "index.html")
 
-
+#مدیریت اتصال کاربران
 class ConnectionManager:
     def __init__(self):
         self.active_connections: set[WebSocket] = set()
 
+#این تابع برای افزودن یک اتصال به مجموعه است
     async def connect(self, websocket: WebSocket):
-
-
         self.active_connections.add(websocket)
 
+
+#این تابع اتصال رو از مجموعه حذف می‌کنه
     def disconnect(self, websocket: WebSocket):
         self.active_connections.discard(websocket)
 
+
+    # ارسال بع همه
     async def broadcast(self, message: dict):
         disconnected = []
 
+
+        #حلقه‌ی ارسال به اتصال‌ها
         for connection in list(self.active_connections):
             try:
                 await connection.send_json(message)
