@@ -1,37 +1,14 @@
 
-// گرفتن عناصر
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
-const connectButton = document.getElementById("connectButton");
 const statusText = document.getElementById("status");
 const messages = document.getElementById("messages");
 const chatForm = document.getElementById("chatForm");
 const messageInput = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
 
-// متغیر اتصال
 let socket = null;
 
-//وقتی کاربر روی دکمه اتصال کلیک می‌کند
-connectButton.addEventListener("click", () => {
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
-
-    if (!username) {
-        statusText.textContent = "ابتدا نام کاربری را وارد کن.";
-        return;
-    }
-
-    if (!password) {
-        statusText.textContent = "رمز عبور را وارد کن.";
-        return;
-    }
-    //بررسی اتصال قبلی
-    if (socket && socket.readyState !== WebSocket.CLOSED) {
-        statusText.textContent = "اتصال قبلی هنوز برقرار است.";
-        return;
-    }
-    //ساخت اتصال WebSocket
+// اتصال خودکار به WebSocket
+function connectToChat() {
     const protocol =
         window.location.protocol === "https:" ? "wss:" : "ws:";
 
@@ -40,67 +17,67 @@ connectButton.addEventListener("click", () => {
     );
 
     socket.addEventListener("open", () => {
-        socket.send(JSON.stringify({
-            username: username,
-            password: password
-        }));
-
-        statusText.textContent = "در حال بررسی رمز عبور...";
-
-        usernameInput.disabled = true;
-        passwordInput.disabled = true;
-        connectButton.disabled = true;
+        statusText.textContent = "اتصال برقرار شد؛ در حال بررسی نشست...";
     });
-    //دریافت پیام از سرور
+
+    // دریافت اطلاعات از سرور
     socket.addEventListener("message", (event) => {
-        const data = JSON.parse(event.data);
+        let data;
+
+        try {
+            data = JSON.parse(event.data);
+        } catch {
+            return;
+        }
 
         if (data.type === "login_success") {
-            statusText.textContent = "ورود موفق بود.";
+            statusText.textContent = `متصل شدی؛ خوش آمدی ${data.username}`;
             messageInput.disabled = false;
             sendButton.disabled = false;
             messageInput.focus();
             return;
         }
-        //
-        const item = document.createElement("div");
-        item.className = "message";
 
-        const sender = document.createElement("strong");
-        sender.textContent = data.username + ": ";
+        // نمایش پیام دریافتی
+        if (data.username && typeof data.message === "string") {
+            const item = document.createElement("div");
+            item.className = "message";
 
-        const content = document.createElement("span");
-        content.textContent = data.message;
+            const sender = document.createElement("strong");
+            sender.textContent = data.username + ": ";
 
-        item.append(sender, content);
-        messages.appendChild(item);
+            const content = document.createElement("span");
+            content.textContent = data.message;
 
-        messages.scrollTop = messages.scrollHeight;
+            item.append(sender, content);
+            messages.appendChild(item);
+
+            messages.scrollTop = messages.scrollHeight;
+        }
     });
-    //وقتی اتصال قطع می‌شود
-    socket.addEventListener("close", () => {
-        statusText.textContent = "اتصال قطع شد.";
 
-        usernameInput.disabled = false;
-        passwordInput.disabled = false;
-        connectButton.disabled = false;
+    // مدیریت قطع اتصال
+    socket.addEventListener("close", () => {
+        statusText.textContent =
+            "اتصال قطع شد؛ اگر وارد حساب نشده‌ای، دوباره وارد شو.";
 
         messageInput.disabled = true;
         sendButton.disabled = true;
     });
-    //وقتی خطای ارتباطی رخ می‌دهد
+
     socket.addEventListener("error", () => {
         statusText.textContent = "خطا در ارتباط با سرور.";
     });
-});
-//ارسال پیام چت
+}
+
+// ارسال پیام
 chatForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
     const message = messageInput.value.trim();
-    //وضعیت اتصال بررسی می‌شه
+
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-        statusText.textContent = "ابتدا به سرور متصل شو.";
+        statusText.textContent = "اتصال برقرار نیست.";
         return;
     }
 
@@ -111,3 +88,6 @@ chatForm.addEventListener("submit", (event) => {
     messageInput.value = "";
     messageInput.focus();
 });
+
+// شروع اتصال هنگام بارگذاری صفحه
+connectToChat();

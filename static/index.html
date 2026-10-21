@@ -15,13 +15,9 @@
             <p>پیام‌رسان شبکه داخلی</p>
         </header>
 
-        <section class="login">
-            <label for="username">نام کاربری</label>
-            <input id="username" maxlength="30" placeholder="نام کاربری...">
-            <label for="username">رمز عبور </label>
-            <input id="password" type="password" minlength="8" placeholder="رمز عبور...">
-            <button id="connectButton">اتصال به چت</button>
-            <p id="status">هنوز متصل نشده‌ای.</p>
+        <section class="chat-status">
+            <p id="status">در حال اتصال به سرور...</p>
+            <a href="/logout">خروج از حساب</a>
         </section>
 
         <section id="messages" class="messages"></section>
@@ -29,15 +25,17 @@
         <form id="chatForm" class="message-form">
             <input
                 id="messageInput"
+                type="text"
                 maxlength="1000"
                 placeholder="پیامت را بنویس..."
                 autocomplete="off"
                 disabled
+                required
             >
-            <button id="sendButton" disabled>ارسال</button>
+            <button id="sendButton" type="submit" disabled>
+                ارسال
+            </button>
         </form>
     </main>
-
-
 </body>
 </html>

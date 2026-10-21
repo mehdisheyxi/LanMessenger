@@ -11,17 +11,37 @@ SMTP	ارسال ایمیل
 FTP	انتقال فایل
 SSH	دسترسی و مدیریت امن سیستم از راه دور
 '''
+from fastapi import Form, Request
+from fastapi.responses import RedirectResponse
+from auth import register_user, verify_user
 from pathlib import Path
 import json
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime
+from database import init_db
+from starlette.middleware.sessions import SessionMiddleware
 
 
 #ساخت برنامه و تنظیمات اولیه
 app = FastAPI(title="LAN Messenger")
-CHAT_PASSWORD = "12345678"
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="CHANGE_THIS_TO_A_LONG_RANDOM_SECRET",
+    session_cookie="lanmessenger_session",
+    same_site="lax",
+    https_only=False,
+    max_age=60 * 60 * 8,
+)
+
+@app.on_event("startup")
+def startup():
+    init_db()
+
+
+
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
@@ -31,9 +51,70 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 #پاسخ به درخواست HTTP برای صفحه‌ی اصلی
+
 @app.get("/")
-async def home():
+async def home(request: Request):
+    username = request.session.get("username")
+
+    if not username:
+        return RedirectResponse(url="/login", status_code=303)
+
     return FileResponse(STATIC_DIR / "index.html")
+
+
+
+@app.get("/login")
+async def login_page():
+    return FileResponse(STATIC_DIR / "login.html")
+
+
+@app.get("/register")
+async def register_page():
+    return FileResponse(STATIC_DIR / "register.html")
+
+
+
+@app.post("/register")
+async def register(
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    success = register_user(username, password)
+
+    if not success:
+        return {
+            "success": False,
+            "message": "نام کاربری تکراری است یا اطلاعات واردشده معتبر نیست."
+        }
+
+    return RedirectResponse(url="/login", status_code=303)
+
+
+
+
+@app.post("/login")
+async def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    if not verify_user(username, password):
+        return RedirectResponse(
+            url="/login?error=invalid",
+            status_code=303,
+        )
+
+    request.session.clear()
+    request.session["username"] = username.strip()
+
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+
+    return RedirectResponse(url="/login", status_code=303)
 
 #مدیریت اتصال کاربران
 #نگهداری اتصال‌های فعال و پخش پیام‌ها
@@ -84,36 +165,28 @@ manager = ConnectionManager()
 
 
 #تعریف نقطه‌ی اتصال WebSocket
+
 @app.websocket("/ws")
 async def chat(websocket: WebSocket):
-    #پذیرفتن اتصال WebSocket
+    # دریافت نام کاربر از نشست
+    session = websocket.scope.get("session", {})
+    username = session.get("username")
+
+    # جلوگیری از اتصال کاربران واردنشده
+    if not username:
+        await websocket.close(code=1008)
+        return
+
+    # پذیرش اتصال کاربر احراز هویت‌شده
     await websocket.accept()
+    await manager.connect(websocket)
+    manager.log_connections("CONNECTED", websocket)
 
     try:
-        login_data = await websocket.receive_text()
-
-        try:
-            data = json.loads(login_data)
-        except json.JSONDecodeError:
-            await websocket.close(code=1008)
-            return
-
-        username = str(data.get("username", "")).strip()
-        password = str(data.get("password", ""))
-
-        if not username or len(username) > 30:
-            await websocket.close(code=1008)
-            return
-
-        if password != CHAT_PASSWORD:
-            await websocket.close(code=1008)
-            return
-
-        await manager.connect(websocket)
-
-        manager.log_connections("CONNECTED", websocket)
-
-        await websocket.send_json({"type": "login_success"})
+        await websocket.send_json({
+            "type": "login_success",
+            "username": username,
+        })
 
         while True:
             raw_message = await websocket.receive_text()
@@ -134,6 +207,10 @@ async def chat(websocket: WebSocket):
             })
 
     except WebSocketDisconnect:
+        pass
+
+    finally:
         manager.disconnect(websocket)
         manager.log_connections("DISCONNECTED", websocket)
+
 #python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-level info
