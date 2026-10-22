@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت کاربران | LAN Messenger</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="auth-container">
+        <h1>پنل مدیریت</h1>
+        <h2>افزودن کاربر</h2>
+
+        <form action="/admin/users/create" method="post">
+            <label for="username">نام کاربری</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                maxlength="30"
+                autocomplete="off"
+                required
+            >
+
+            <label for="password">رمز عبور اولیه</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                minlength="8"
+                maxlength="128"
+                autocomplete="new-password"
+                required
+            >
+
+            <button type="submit">ساخت حساب کاربری</button>
+        </form>
+
+        
+<hr>
+
+<h2>فهرست کاربران</h2>
+
+<button type="button" id="refreshUsers">
+    به‌روزرسانی فهرست
+</button>
+
+<div id="usersList">در حال دریافت کاربران...</div>
+
+
+        <p id="resultMessage"></p>
+
+        <p><a href="/logout">خروج از حساب مدیر</a></p>
+    </main>
+
+    <script>
+        
+const params = new URLSearchParams(window.location.search);
+const resultMessage = document.getElementById("resultMessage");
+const usersList = document.getElementById("usersList");
+const refreshUsers = document.getElementById("refreshUsers");
+
+if (params.get("result") === "created") {
+    resultMessage.textContent = "حساب کاربری با موفقیت ساخته شد.";
+    resultMessage.style.color = "green";
+} else if (params.get("error") === "create") {
+    resultMessage.textContent =
+        "ساخت حساب ناموفق بود؛ نام کاربری تکراری یا اطلاعات نامعتبر است.";
+    resultMessage.style.color = "#c62828";
+}
+
+async function loadUsers() {
+    usersList.textContent = "در حال دریافت کاربران...";
+
+    try {
+        const response = await fetch("/admin/api/users");
+
+        if (!response.ok) {
+            throw new Error("دریافت کاربران ناموفق بود");
+        }
+
+        const data = await response.json();
+        const users = data.users;
+
+        usersList.replaceChildren();
+
+        const count = document.createElement("p");
+        const regularUsers = users.filter(
+            user => user.role === "user"
+        ).length;
+
+        count.textContent =
+            `تعداد کل حساب‌ها: ${users.length} | کاربران عادی: ${regularUsers}`;
+
+        usersList.appendChild(count);
+
+        if (users.length === 0) {
+            usersList.append("هنوز کاربری ثبت نشده است.");
+            return;
+        }
+
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+
+        for (const title of [
+            "ردیف",
+            "نام کاربری",
+            "نقش",
+            "وضعیت",
+            "عملیات"
+        ]) {
+            const th = document.createElement("th");
+            th.textContent = title;
+            headerRow.appendChild(th);
+        }
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+
+        users.forEach((user, index) => {
+            const row = document.createElement("tr");
+
+            const numberCell = document.createElement("td");
+            numberCell.textContent = index + 1;
+            row.appendChild(numberCell);
+
+            const usernameCell = document.createElement("td");
+            usernameCell.textContent = user.username;
+            row.appendChild(usernameCell);
+
+            const roleCell = document.createElement("td");
+            roleCell.textContent =
+                user.role === "admin" ? "مدیر" : "کاربر";
+            row.appendChild(roleCell);
+
+            const statusCell = document.createElement("td");
+            statusCell.textContent =
+                user.is_active ? "فعال" : "غیرفعال";
+            row.appendChild(statusCell);
+
+            const actionsCell = document.createElement("td");
+
+            if (user.role === "user") {
+                const passwordButton = document.createElement("button");
+                passwordButton.textContent = "تغییر رمز";
+
+                passwordButton.addEventListener("click", async () => {
+                    const password = prompt(
+                        `رمز جدید برای ${user.username} (حداقل ۸ کاراکتر):`
+                    );
+
+                    if (password === null) return;
+
+                    if (password.length < 8 || password.length > 128) {
+                        alert("رمز باید بین ۸ تا ۱۲۸ کاراکتر باشد.");
+                        return;
+                    }
+
+                    const confirmed = confirm(
+                        `رمز حساب ${user.username} تغییر کند؟`
+                    );
+
+                    if (!confirmed) return;
+
+                    try {
+                        const response = await fetch(
+                            `/admin/api/users/${user.id}/password`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type":
+                                        "application/x-www-form-urlencoded"
+                                },
+                                body: new URLSearchParams({ password })
+                            }
+                        );
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.detail || "تغییر رمز ناموفق بود.");
+                        }
+
+                        alert("رمز عبور با موفقیت تغییر کرد.");
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                });
+
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "حذف حساب";
+
+                deleteButton.addEventListener("click", async () => {
+                    const confirmed = confirm(
+                        `آیا از حذف حساب ${user.username} مطمئنی؟ این کار قابل بازگشت نیست.`
+                    );
+
+                    if (!confirmed) return;
+
+                    try {
+                        const response = await fetch(
+                            `/admin/api/users/${user.id}/delete`,
+                            { method: "POST" }
+                        );
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.detail || "حذف حساب ناموفق بود.");
+                        }
+
+                        await loadUsers();
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                });
+
+                actionsCell.append(passwordButton, deleteButton);
+            } else {
+                actionsCell.textContent = "حساب مدیریتی";
+            }
+
+            row.appendChild(actionsCell);
+            tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        usersList.appendChild(table);
+
+    } catch (error) {
+        usersList.textContent = "خطا در دریافت فهرست کاربران.";
+    }
+}
+
+refreshUsers.addEventListener("click", loadUsers);
+
+loadUsers();
+
+    </script>
+</body>
+</html>

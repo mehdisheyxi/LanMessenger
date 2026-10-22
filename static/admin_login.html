@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود مدیر | LAN Messenger</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="auth-container">
+        <h1>LAN Messenger</h1>
+        <h2>ورود مدیر</h2>
+
+        <form action="/admin/login" method="post">
+            <label for="username">نام کاربری مدیر</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                maxlength="30"
+                autocomplete="username"
+                required
+            >
+
+            <label for="password">رمز عبور</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                required
+            >
+
+            <button type="submit">ورود به پنل مدیریت</button>
+        </form>
+
+        <p id="loginError" style="color: #c62828; display: none;">
+            اطلاعات ورود مدیر صحیح نیست.
+        </p>
+
+        <p><a href="/login">بازگشت به ورود کاربران</a></p>
+    </main>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get("error") === "invalid") {
+            document.getElementById("loginError").style.display = "block";
+        }
+    </script>
+</body>
+</html>
