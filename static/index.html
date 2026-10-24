@@ -3,39 +3,151 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
     <title>LAN Messenger</title>
+
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/script.js" defer></script>
 </head>
 <body>
-    <main class="chat-container">
-        <header>
-            <h1>LAN Messenger</h1>
-            <p>پیام‌رسان شبکه داخلی</p>
+    <main class="app">
+
+        <!-- نوار بالای برنامه -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-icon">LM</div>
+                <div>
+                    <h1>LAN Messenger</h1>
+                    <p>پیام‌رسان شبکه داخلی</p>
+                </div>
+            </div>
+
+            <a class="logout-button" href="/logout">خروج از حساب</a>
         </header>
 
-        <section class="chat-status">
-            <p id="status">در حال اتصال به سرور...</p>
-            <a href="/logout">خروج از حساب</a>
-        </section>
+        <!-- بدنه اصلی پیام‌رسان -->
+        <div class="messenger-layout">
 
-        <section id="messages" class="messages"></section>
+            <!-- فهرست گفتگوها -->
+            <aside class="sidebar">
 
-        <form id="chatForm" class="message-form">
-            <input
-                id="messageInput"
-                type="text"
-                maxlength="1000"
-                placeholder="پیامت را بنویس..."
-                autocomplete="off"
-                disabled
-                required
-            >
-            <button id="sendButton" type="submit" disabled>
-                ارسال
-            </button>
-        </form>
+                <div class="sidebar-header">
+                    <h2>گفتگوها</h2>
+                    <p id="status">در حال اتصال به سرور...</p>
+                </div>
+
+                <!-- جست‌وجوی کاربران -->
+                <section class="user-search">
+                    <form id="userSearchForm">
+                        <input
+                            id="userSearchInput"
+                            type="search"
+                            maxlength="30"
+                            placeholder="جست‌وجوی نام کاربری..."
+                            autocomplete="off"
+                            disabled
+                        >
+
+                        <button
+                            id="searchUsersButton"
+                            type="submit"
+                            disabled
+                        >جست‌وجو</button>
+                    </form>
+
+                    <div
+                        id="userSearchResults"
+                        class="user-search-results"
+                        aria-live="polite"
+                    ></div>
+                </section>
+
+                <!-- فهرست چت‌ها -->
+                <nav class="conversation-list" aria-label="فهرست گفتگوها">
+
+                    <button
+                        id="groupModeButton"
+                        class="conversation-item active"
+                        type="button"
+                        disabled
+                    >
+                        <span class="conversation-avatar group-avatar">عم</span>
+
+                        <span class="conversation-details">
+                            <strong>چت عمومی</strong>
+                            <small>گفتگو با کاربران</small>
+                        </span>
+                    </button>
+
+                    <div id="privateConversations"></div>
+
+                </nav>
+
+                <footer class="sidebar-footer">
+                    پیام‌رسان شبکه داخلی
+                </footer>
+
+            </aside>
+
+            
+            <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+            <!-- پنل اصلی چت -->
+            <section class="chat-panel">
+
+                <header class="chat-panel-header">
+                    <button
+                        id="toggleSidebarButton"
+                        class="mobile-menu-button"
+                        type="button"
+                        aria-label="نمایش گفتگوها"
+                        aria-expanded="false"
+                    >
+                        ☰
+                    </button>
+                    <div class="chat-heading">
+                        <h2 id="chatTitle">چت عمومی</h2>
+                        <p id="chatSubtitle">گفتگو با کاربران پیام‌رسان</p>
+                    </div>
+
+                    <span id="chatModeStatus" class="chat-mode-badge">
+                        عمومی
+                    </span>
+                </header>
+
+                <p id="selectedRecipient" hidden>
+                    گیرنده‌ای انتخاب نشده است.
+                </p>
+
+                <!-- پیام‌ها -->
+                <section
+                    id="messages"
+                    class="messages"
+                    aria-live="polite"
+                    aria-label="پیام‌های گفتگو"
+                ></section>
+
+                <!-- کادر ارسال پیام -->
+                <form id="chatForm" class="message-form">
+                    <input
+                        id="messageInput"
+                        type="text"
+                        maxlength="1000"
+                        placeholder="پیامت را بنویس..."
+                        autocomplete="off"
+                        disabled
+                        required
+                    >
+
+                    <button id="sendButton" type="submit" disabled>
+                        <span>ارسال</span>
+                        <span aria-hidden="true">➤</span>
+                    </button>
+                </form>
+
+            </section>
+        </div>
     </main>
 </body>
 </html>
