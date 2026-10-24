@@ -359,7 +359,13 @@ class ConnectionManager:
             if not connections:
                 self.user_connections.pop(username, None)
 
-    def log_connections(self, event: str, websocket: WebSocket):
+
+    def log_connections(
+        self,
+        event: str,
+        websocket: WebSocket,
+        username: str,
+    ):
         client = websocket.client
 
         ip = client.host if client else "Unknown"
@@ -368,9 +374,11 @@ class ConnectionManager:
 
         print(
             f"[{time}] {event} | "
+            f"Username: {username} | "
             f"IP: {ip}:{port} | "
             f"Online: {len(self.active_connections)}"
         )
+
 
     async def broadcast(self, message: dict):
         disconnected = []
@@ -436,7 +444,7 @@ async def chat(websocket: WebSocket):
     # فقط یک بار اتصال را می‌پذیریم
     await websocket.accept()
     await manager.connect(websocket, username)
-    manager.log_connections("CONNECTED", websocket)
+    manager.log_connections("CONNECTED", websocket , username)
 
     try:
         await websocket.send_json({
@@ -589,7 +597,7 @@ async def chat(websocket: WebSocket):
 
     finally:
         manager.disconnect(websocket, username)
-        manager.log_connections("DISCONNECTED", websocket)
+        manager.log_connections("DISCONNECTED", websocket , username)
 
 
 
