@@ -73,6 +73,7 @@ function privateChatId(username) {
 
 
 // ایجاد گفتگو در صورت نبودن آن
+
 function ensurePrivateConversation(username) {
     const id = privateChatId(username);
 
@@ -80,7 +81,8 @@ function ensurePrivateConversation(username) {
         conversations.set(id, {
             type: "private",
             username: username,
-            messages: []
+            messages: [],
+            loaded: false
         });
 
         renderConversationList();
@@ -88,6 +90,7 @@ function ensurePrivateConversation(username) {
 
     return conversations.get(id);
 }
+
 
 
 // ساخت حباب پیام
@@ -157,6 +160,9 @@ function addMessage(
     id = null,
     isRead = false
 ) {
+    
+
+
     const conversation = conversations.get(chatId);
 
     if (!conversation) {
@@ -179,6 +185,47 @@ function addMessage(
     }
 }
 
+async function loadPrivateHistory(username) {
+    const chatId = privateChatId(username);
+    const conversation = conversations.get(chatId);
+
+    if (!conversation || conversation.loaded) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/api/messages?username=${encodeURIComponent(username)}`
+        );
+
+        if (!response.ok) {
+            statusText.textContent =
+                "دریافت تاریخچه پیام‌ها ناموفق بود.";
+            return;
+        }
+
+        const data = await response.json();
+
+        conversation.messages = data.messages.map((item) => ({
+            id: item.id,
+            sender: item.sender,
+            text: item.message,
+            isRead: item.is_read
+        }));
+
+        conversation.loaded = true;
+
+        renderConversationList();
+
+        if (currentChat === chatId) {
+            renderMessages();
+        }
+    } catch (error) {
+        statusText.textContent =
+            "خطا در دریافت تاریخچه پیام‌ها.";
+        console.error(error);
+    }
+}
 
 // ساخت فهرست گفتگوهای خصوصی
 function renderConversationList() {
@@ -264,6 +311,11 @@ function openConversation(id) {
 
 renderMessages();
 renderConversationList();
+
+
+if (conversation.type === "private") {
+    loadPrivateHistory(conversation.username);
+}
 
 // اگر گفتگوی خصوصی باز شده، خوانده‌شدن پیام‌ها را اعلام کن
 if (conversation.type === "private" && socket?.readyState === WebSocket.OPEN) {

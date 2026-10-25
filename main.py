@@ -330,6 +330,58 @@ async def search_users_api(request: Request, q: str = ""):
     return {"users": users}
 
 
+
+@app.get("/api/messages")
+async def private_messages_api(
+    request: Request,
+    username: str,
+):
+    current_username = request.session.get("username")
+
+    if not current_username:
+        raise HTTPException(
+            status_code=401,
+            detail="ابتدا وارد حساب کاربری شوید.",
+        )
+
+    current_user = get_user(current_username)
+    other_user = get_user(username)
+
+    if (
+        not current_user
+        or not current_user["is_active"]
+        or not other_user
+        or not other_user["is_active"]
+        or current_user["id"] == other_user["id"]
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail="کاربر پیدا نشد.",
+        )
+
+    rows = get_private_messages(
+        current_user["id"],
+        other_user["id"],
+    )
+
+    history = [
+        {
+            "id": row["id"],
+            "sender": (
+                current_user["username"]
+                if row["sender_id"] == current_user["id"]
+                else other_user["username"]
+            ),
+            "message": row["message"],
+            "created_at": row["created_at"],
+            "is_read": bool(row["is_read"]),
+        }
+        for row in rows
+    ]
+
+    return {"messages": history}
+
+
 # ==================================================
 # مدیریت اتصال‌های WebSocket
 # ==================================================
