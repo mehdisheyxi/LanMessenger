@@ -27,23 +27,21 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from auth import (
-    register_user,
-    verify_user,
-    get_user,
-    list_users,
     change_user_password,
     delete_user,
+    get_user,
+    list_users,
+    register_user,
+    verify_user,
 )
-
 from database import (
     DB_PATH,
-    init_db,
-    search_users,
-    save_private_message,
     get_private_messages,
+    init_db,
     mark_messages_read,
+    save_private_message,
+    search_users,
 )
-
 
 # ==================================================
 # تنظیمات اولیه برنامه

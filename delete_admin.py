@@ -1,8 +1,8 @@
 
 import sqlite3
 from getpass import getpass
-from database import DB_PATH
 
+from database import DB_PATH
 
 username = input("Admin username to delete: ").strip()
 

@@ -1,6 +1,8 @@
 
 import sqlite3
+
 from pwdlib import PasswordHash
+
 from database import DB_PATH
 
 password_hash = PasswordHash.recommended()

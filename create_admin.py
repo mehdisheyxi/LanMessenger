@@ -1,5 +1,6 @@
 
 from getpass import getpass
+
 from auth import create_admin
 
 username = input("Admin username: ").strip()
