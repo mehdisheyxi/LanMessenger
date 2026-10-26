@@ -26,22 +26,8 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from auth import (
-    change_user_password,
-    delete_user,
-    get_user,
-    list_users,
-    register_user,
-    verify_user,
-)
-from database import (
-    DB_PATH,
-    get_private_messages,
-    init_db,
-    mark_messages_read,
-    save_private_message,
-    search_users,
-)
+import auth
+import database
 
 # ==================================================
 # تنظیمات اولیه برنامه
@@ -63,7 +49,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
-    init_db()
+    database.init_db()
 
 
 app.mount(
@@ -102,7 +88,7 @@ async def register(
     username: str = Form(...),
     password: str = Form(...),
 ):
-    success = register_user(username, password)
+    success = auth.register_user(username, password)
 
     if not success:
         return {
@@ -119,13 +105,13 @@ async def login(
     username: str = Form(...),
     password: str = Form(...),
 ):
-    if not verify_user(username, password):
+    if not auth.verify_user(username, password):
         return RedirectResponse(
             url="/login?error=invalid",
             status_code=303,
         )
 
-    user = get_user(username)
+    user = auth.get_user(username)
 
     if not user or not user["is_active"]:
         return RedirectResponse(
@@ -156,7 +142,7 @@ def require_admin(request: Request):
     if not username:
         return None
 
-    user = get_user(username)
+    user = auth.get_user(username)
 
     if user and user["role"] == "admin" and user["is_active"]:
         return user
@@ -169,7 +155,7 @@ async def admin_login_page(request: Request):
     username = request.session.get("username")
 
     if username:
-        user = get_user(username)
+        user = auth.get_user(username)
 
         if user and user["role"] == "admin" and user["is_active"]:
             return RedirectResponse(url="/admin", status_code=303)
@@ -183,13 +169,13 @@ async def admin_login(
     username: str = Form(...),
     password: str = Form(...),
 ):
-    if not verify_user(username, password):
+    if not auth.verify_user(username, password):
         return RedirectResponse(
             url="/admin/login?error=invalid",
             status_code=303,
         )
 
-    user = get_user(username)
+    user = auth.get_user(username)
 
     if not user or user["role"] != "admin" or not user["is_active"]:
         return RedirectResponse(
@@ -231,7 +217,7 @@ async def admin_create_user(
             status_code=303,
         )
 
-    success = register_user(username, password)
+    success = auth.register_user(username, password)
 
     if success:
         return RedirectResponse(
@@ -253,7 +239,7 @@ async def admin_users_api(request: Request):
             detail="دسترسی غیرمجاز",
         )
 
-    return {"users": list_users()}
+    return {"users": auth.list_users()}
 
 
 @app.post("/admin/api/users/{user_id}/password")
@@ -268,7 +254,7 @@ async def admin_change_password(
             detail="دسترسی غیرمجاز",
         )
 
-    if not change_user_password(user_id, password):
+    if not auth.change_user_password(user_id, password):
         raise HTTPException(
             status_code=400,
             detail="تغییر رمز ناموفق بود. رمز باید حداقل ۸ کاراکتر باشد.",
@@ -288,7 +274,7 @@ async def admin_delete_user(
             detail="دسترسی غیرمجاز",
         )
 
-    if not delete_user(user_id):
+    if not auth.delete_user(user_id):
         raise HTTPException(
             status_code=400,
             detail="حذف حساب ناموفق بود.",
@@ -307,7 +293,7 @@ async def search_users_api(request: Request, q: str = ""):
             detail="ابتدا وارد حساب کاربری شوید.",
         )
 
-    user = get_user(username)
+    user = auth.get_user(username)
 
     if not user or not user["is_active"]:
         raise HTTPException(
@@ -323,7 +309,7 @@ async def search_users_api(request: Request, q: str = ""):
             detail="عبارت جست‌وجو بیش از حد طولانی است.",
         )
 
-    users = search_users(q, user["id"])
+    users = database.search_users(q, user["id"])
 
     return {"users": users}
 
@@ -342,8 +328,8 @@ async def private_messages_api(
             detail="ابتدا وارد حساب کاربری شوید.",
         )
 
-    current_user = get_user(current_username)
-    other_user = get_user(username)
+    current_user = auth.get_user(current_username)
+    other_user = auth.get_user(username)
 
     if (
         not current_user
@@ -357,7 +343,7 @@ async def private_messages_api(
             detail="کاربر پیدا نشد.",
         )
 
-    rows = get_private_messages(
+    rows = database.get_private_messages(
         current_user["id"],
         other_user["id"],
     )
@@ -482,7 +468,7 @@ async def chat(websocket: WebSocket):
         await websocket.close(code=1008)
         return
 
-    user = get_user(username)
+    user = auth.get_user(username)
 
     if not user or not user["is_active"]:
         await websocket.close(code=1008)
@@ -503,7 +489,7 @@ async def chat(websocket: WebSocket):
         })
 
         # دریافت پیام‌های خصوصی خوانده‌نشده
-        with sqlite3.connect(DB_PATH) as connection:
+        with sqlite3.connect(database.DB_PATH) as connection:
             connection.row_factory = sqlite3.Row
 
             pending_messages = connection.execute(
@@ -550,13 +536,13 @@ async def chat(websocket: WebSocket):
                     data.get("sender", "")
                 ).strip()
 
-                sender = get_user(sender_username)
+                sender = auth.get_user(sender_username)
 
                 if not sender or not sender["is_active"]:
                     continue
 
                 # علامت‌گذاری پیام‌های خوانده‌شده
-                message_ids = mark_messages_read(
+                message_ids = database.mark_messages_read(
                     recipient_id=user_id,
                     sender_id=sender["id"],
                 )
@@ -586,7 +572,7 @@ async def chat(websocket: WebSocket):
                     data.get("recipient", "")
                 ).strip()
 
-                recipient = get_user(recipient_username)
+                recipient = auth.get_user(recipient_username)
 
                 if (
                     not recipient
@@ -599,7 +585,7 @@ async def chat(websocket: WebSocket):
                     })
                     continue
 
-                message_id = save_private_message(
+                message_id = database.save_private_message(
                     user_id,
                     recipient["id"],
                     message,
