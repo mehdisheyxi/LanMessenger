@@ -314,6 +314,29 @@ async def search_users_api(request: Request, q: str = ""):
     return {"users": users}
 
 
+@app.get("/api/conversations")
+async def api_get_conversations(request: Request):
+    username = request.session.get("username")
+
+    if not username:
+        raise HTTPException(
+            status_code=401,
+            detail="ابتدا وارد حساب شوید.",
+        )
+
+    user = auth.get_user(username)
+
+    if not user or not user["is_active"]:
+        request.session.clear()
+        raise HTTPException(
+            status_code=401,
+            detail="حساب کاربری معتبر نیست.",
+        )
+
+    conversations = database.get_private_conversations(user["id"])
+
+    return {"conversations": conversations}
+
 
 @app.get("/api/messages")
 async def private_messages_api(

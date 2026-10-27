@@ -429,7 +429,8 @@ function connectToChat() {
             groupModeButton.disabled = false;
             userSearchInput.disabled = false;
             searchUsersButton.disabled = false;
-
+            
+            loadPrivateConversations();
             renderMessages();
             return;
         }
@@ -525,6 +526,27 @@ if (data.type === "messages_read") {
     socket.addEventListener("error", () => {
         statusText.textContent = "خطا در ارتباط با سرور.";
     });
+}
+
+async function loadPrivateConversations() {
+    try {
+        const response = await fetch("/api/conversations");
+
+        if (!response.ok) {
+            console.error("خطا در دریافت فهرست گفتگوها");
+            return;
+        }
+
+        const data = await response.json();
+
+        for (const user of data.conversations) {
+            ensurePrivateConversation(user.username);
+        }
+
+        renderConversationList();
+    } catch (error) {
+        console.error("خطا در بارگذاری گفتگوها:", error);
+    }
 }
 
 

@@ -235,3 +235,43 @@ def mark_messages_read(
         return message_ids
 
 
+def get_private_conversations(user_id: int):
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.row_factory = sqlite3.Row
+
+        rows = connection.execute(
+            """
+            WITH conversations AS (
+                SELECT
+                    CASE
+                        WHEN sender_id = ? THEN recipient_id
+                        ELSE sender_id
+                    END AS partner_id,
+                    MAX(id) AS latest_message_id
+                FROM messages
+                WHERE sender_id = ? OR recipient_id = ?
+                GROUP BY partner_id
+            )
+            SELECT
+                u.id,
+                u.username,
+                m.message AS last_message,
+                m.created_at AS last_message_at,
+                (
+                    SELECT COUNT(*)
+                    FROM messages AS unread
+                    WHERE unread.sender_id = u.id
+                      AND unread.recipient_id = ?
+                      AND unread.is_read = 0
+                ) AS unread_count
+            FROM conversations AS c
+            JOIN users AS u ON u.id = c.partner_id
+            JOIN messages AS m ON m.id = c.latest_message_id
+            WHERE u.is_active = 1
+            ORDER BY c.latest_message_id DESC
+            """,
+            (user_id, user_id, user_id, user_id),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
