@@ -1152,3 +1152,39 @@ a:focus-visible {
 .message-own .message-status {
     align-self: flex-end;
 }
+@keyframes unread-message-blink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+@keyframes unread-message-blink {
+    0%,
+    100% {
+        opacity: 1;
+        color: #2196f3;
+    }
+
+    50% {
+        opacity: 0.4;
+        color: #64b5f6;
+    }
+}
+
+.conversation-details small.conversation-preview-unread {
+    animation: unread-message-blink 1s ease-in-out infinite;
+    font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .conversation-details small.conversation-preview-unread {
+        animation: none;
+        color: #2196f3;
+        font-weight: 700;
+    }
+}

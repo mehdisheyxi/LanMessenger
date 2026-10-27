@@ -82,7 +82,9 @@ function ensurePrivateConversation(username) {
             type: "private",
             username: username,
             messages: [],
-            loaded: false
+            loaded: false,
+            lastMessage: "",
+            hasUnread: false
         });
 
         renderConversationList();
@@ -177,6 +179,18 @@ function addMessage(
     });
 
     if (chatId.startsWith("private:")) {
+    conversation.lastMessage = text;
+
+    if (sender !== currentUsername && currentChat !== chatId) {
+        conversation.hasUnread = true;
+    }
+
+    if (currentChat === chatId) {
+        conversation.hasUnread = false;
+    }
+}
+
+    if (chatId.startsWith("private:")) {
         renderConversationList();
     }
 
@@ -255,13 +269,19 @@ function renderConversationList() {
         name.textContent = conversation.username;
 
         const preview = document.createElement("small");
+
         const lastMessage =
             conversation.messages[conversation.messages.length - 1];
 
-        preview.textContent = lastMessage
+        const previewText = lastMessage
             ? lastMessage.text
-            : "شروع گفتگو";
+            : conversation.lastMessage;
 
+        preview.textContent = previewText || "شروع گفتگو";
+
+        if (conversation.hasUnread && currentChat !== id) {
+            preview.classList.add("conversation-preview-unread");
+        }
         details.append(name, preview);
         button.append(avatar, details);
 
@@ -287,6 +307,12 @@ function openConversation(id) {
     }
 
     currentChat = id;
+
+    const selectedConversation = conversations.get(id);
+
+    if (selectedConversation.type === "private") {
+    selectedConversation.hasUnread = false;
+}
 
     setSidebarOpen(false);
 
@@ -540,7 +566,13 @@ async function loadPrivateConversations() {
         const data = await response.json();
 
         for (const user of data.conversations) {
-            ensurePrivateConversation(user.username);
+            const conversation = ensurePrivateConversation(
+                user.username
+            );
+
+            conversation.lastMessage = user.last_message || "";
+            conversation.hasUnread =
+                Number(user.unread_count || 0) > 0;
         }
 
         renderConversationList();
