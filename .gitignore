@@ -1,8 +1,10 @@
 .venv/
+.gitignore
 __pycache__/
 *.py[cod]
 .env
 *.db
 .idea
+lanmessenger.db
 lanmessenger.db
 lanmessenger.db
