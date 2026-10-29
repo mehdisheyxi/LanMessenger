@@ -33,7 +33,7 @@ import database
 # تنظیمات اولیه برنامه
 # ==================================================
 
-app = FastAPI(title="LAN Messenger")
+app = FastAPI(title="Painhub")
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
