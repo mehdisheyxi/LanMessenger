@@ -4,7 +4,6 @@ __pycache__/
 *.py[cod]
 .env
 *.db
+*.db-wal
+*.db-shm
 .idea
-lanmessenger.db
-lanmessenger.db
-lanmessenger.db
