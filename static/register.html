@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ثبت‌نام | Painhub</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="auth-container">
+        <h1>Painhub</h1>
+        <h2>ساخت حساب کاربری</h2>
+
+        <form action="/register" method="post">
+            <label for="username">نام کاربری</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                maxlength="30"
+                autocomplete="username"
+                required
+            >
+
+            <label for="password">رمز عبور</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                minlength="8"
+                maxlength="128"
+                autocomplete="new-password"
+                required
+            >
+
+            <button type="submit">ساخت حساب</button>
+        </form>
+
+        <p>
+            قبلاً ثبت‌نام کردی؟
+            <a href="/login">وارد شو</a>
+        </p>
+    </main>
+</body>
+</html>

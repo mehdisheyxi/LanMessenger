@@ -1,0 +1,58 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود | Painhub</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="auth-container">
+        <h1>Painhub</h1>
+        <h2>ورود به حساب</h2>
+
+        <form action="/login" method="post">
+            <label for="username">نام کاربری</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                maxlength="30"
+                autocomplete="username"
+                required
+            >
+
+            <label for="password">رمز عبور</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                required
+            >
+
+            <button type="submit">ورود</button>
+        </form>
+        
+<p id="loginError" style="color: #c62828; display: none;">
+    نام کاربری یا رمز عبور اشتباه است.
+</p>
+
+
+        <p>
+            حساب نداری؟
+            <a href="/register">ثبت‌نام کن</a>
+        </p>
+    </main>
+    
+<script>
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("error") === "invalid") {
+        document.getElementById("loginError").style.display = "block";
+    }
+</script>
+
+</body>
+</html>
